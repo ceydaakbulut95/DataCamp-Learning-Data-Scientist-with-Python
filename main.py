@@ -434,4 +434,141 @@ print(airline_totals_sorted)
 # Save as airline_totals_sorted.csv
 airline_totals_sorted.to_csv("airline_totals_sorted.csv")
 
+# Merge the crews table to itself
+crews_self_merged = crews.merge(crews, on='id', how='inner',
+                                suffixes=('_dir','_crew'))
+
+# Create a Boolean index to select the appropriate rows
+boolean_filter = ((crews_self_merged['job_dir'] == 'Director') &
+                  (crews_self_merged['job_crew'] != 'Director'))
+direct_crews = crews_self_merged[boolean_filter]
+
+#Merging on indexes
+#-----------------------
+
+# Merge sequels and financials on index id
+sequels_fin = sequels.merge(financials, on='id', how='left')
+
+# Self merge with suffixes as inner join with left on sequel and right on id
+orig_seq = sequels_fin.merge(sequels_fin, how='inner', left_on='sequel',
+                             right_on='id', right_index=True,
+                             suffixes=['_org','_seq'])
+
+# Add calculation to subtract revenue_org from revenue_seq
+orig_seq['diff'] = orig_seq['revenue_seq'] - orig_seq['revenue_org']
+
+# Merge sequels and financials on index id
+sequels_fin = sequels.merge(financials, on='id', how='left')
+
+# Self merge with suffixes as inner join with left on sequel and right on id
+orig_seq = sequels_fin.merge(sequels_fin, how='inner', left_on='sequel',
+                             right_on='id', right_index=True,
+                             suffixes=('_org','_seq'))
+
+# Add calculation to subtract revenue_org from revenue_seq
+orig_seq['diff'] = orig_seq['revenue_seq'] - orig_seq['revenue_org']
+
+# Select the title_org, title_seq, and diff
+titles_diff = orig_seq[['title_org','title_seq','diff']]
+
+# Print the first rows of the sorted titles_diff
+print(titles_diff.sort_values(by='diff',ascending=[False]).head())
+
+
+#FIltering joins
+#-----------------------
+
+# Merge employees and top_cust
+empl_cust = employees.merge(top_cust, on='srid',
+                            how='left', indicator=True)
+
+# Select the srid column where _merge is left_only
+srid_list = empl_cust.loc[empl_cust['_merge'] == 'left_only', 'srid']
+
+# Merge employees and top_cust
+empl_cust = employees.merge(top_cust, on='srid',
+                            how='left', indicator=True)
+
+# Select the srid column where _merge is left_only
+srid_list = empl_cust.loc[empl_cust['_merge'] == 'left_only', 'srid']
+
+# Get employees not working with top customers
+print(employees[employees['srid'].isin(srid_list)])
+# Merge the non_mus_tck and top_invoices tables on tid
+tracks_invoices = non_mus_tcks.merge(top_invoices, on='tid',how='inner')
+
+# Use .isin() to subset non_mus_tcks to rows with tid in tracks_invoices
+top_tracks = non_mus_tcks[non_mus_tcks['tid'].isin(tracks_invoices['tid'])]
+
+# Group the top_tracks by gid and count the tid rows
+cnt_by_gid = top_tracks.groupby(['gid'], as_index=False).agg({'tid':'count'})
+
+# Merge the genres table to cnt_by_gid on gid and print
+print(cnt_by_gid.merge(genres,on='gid', how='inner'))
+
+
+
+#Concatenate DataFrames together vertically
+#-----------------------
+
+# Concatenate the tracks
+tracks_from_albums = pd.concat([tracks_master,tracks_ride,tracks_st],
+                               sort=True)
+print(tracks_from_albums)
+# Concatenate the tracks so the index goes from 0 to n-1
+tracks_from_albums = pd.concat([tracks_master,tracks_ride,tracks_st],
+                               ignore_index=True,
+                               sort=True)
+print(tracks_from_albums)
+# Concatenate the tracks, show only columns names that are in all tables
+tracks_from_albums = pd.concat([tracks_master,tracks_ride,tracks_st],
+                               join='inner',
+                               sort=True)
+print(tracks_from_albums)
+# Concatenate the tables and add keys
+inv_jul_thr_sep = pd.concat([inv_jul,inv_aug,inv_sep],
+                            keys=['7Jul','8Aug','9Sep'])
+
+# Group the invoices by the index keys and find avg of the total column
+avg_inv_by_month = inv_jul_thr_sep.groupby(level=0).agg({'total':'mean'})
+
+# Bar plot of avg_inv_by_month
+avg_inv_by_month.plot(kind='bar')
+plt.show()
+# Use the .append() method to combine the tracks tables
+metallica_tracks = tracks_ride.append([tracks_master,tracks_st], sort=False)
+
+# Merge metallica_tracks and invoice_items
+tracks_invoices = metallica_tracks.merge(invoice_items, on='tid')
+
+# For each tid and name sum the quantity sold
+tracks_sold = tracks_invoices.groupby(['tid','name']).agg({'quantity':'sum'})
+
+# Sort in decending order by quantity and print the results
+print(tracks_sold.sort_values(by='quantity', ascending=[False]))
+
+
+#Verifying integrity
+#-----------------------
+# Concatenate the classic tables vertically
+classic_18_19 = pd.concat([classic_18, classic_19], ignore_index=True)
+
+# Concatenate the pop tables vertically
+pop_18_19 = pd.concat([pop_18, pop_19], ignore_index=True)
+# Concatenate the classic tables vertically
+classic_18_19 = pd.concat([classic_18, classic_19], ignore_index=True)
+
+# Concatenate the pop tables vertically
+pop_18_19 = pd.concat([pop_18, pop_19], ignore_index=True)
+
+# Merge classic_18_19 with pop_18_19
+classic_pop = classic_18_19.merge(pop_18_19, on='tid', how='inner')
+
+# Using .isin(), filter classic_18_19 rows where tid is in classic_pop
+popular_classic = classic_18_19[classic_18_19['tid'].isin(classic_pop['tid'])]
+
+# Print popular chart
+print(popular_classic)
+
+
 
